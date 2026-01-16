@@ -12,7 +12,8 @@ func GetStrategy(pType string) StorageStrategy {
 	switch pType {
 	case "LOCAL":
 		return &LocalStrategy{}
-	// case "S3": return &S3Strategy{}
+	case "S3":
+		return &S3Strategy{}
 	default:
 		return &LocalStrategy{}
 	}
