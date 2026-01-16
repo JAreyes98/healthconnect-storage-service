@@ -1,0 +1,46 @@
+# --- Binaries and Executables ---
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+# Tu binario principal si lo compilas
+healthconnect-storage-service
+
+# --- Environment Variables (CRITICAL SECURITY) ---
+.env
+*.env
+# No subir archivos que contengan secretos o llaves
+STORAGE_CIPHER_KEY
+config/*.json
+!config/default.json
+
+# --- Local Storage (Physical Files) ---
+# Ignora la carpeta donde se guardan los archivos físicos de los buckets
+# para que no se suban los PDFs/Imágenes de prueba al repo
+storage/uploads/
+mediadata/
+# Si usas la ruta que configuramos anteriormente:
+/develop/mediadata/
+
+# --- Go Dependencies and Cache ---
+vendor/
+go.sum
+# (Opcional: algunos prefieren subir go.sum, pero go.mod es el obligatorio)
+
+# --- IDE and Editor private files ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Tests ---
+# Si no quieres subir tus archivos de prueba de REST Client
+api_tests.http
