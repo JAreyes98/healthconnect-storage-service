@@ -7,12 +7,12 @@ import (
 )
 
 type FileMetadata struct {
-	ID           uuid.UUID `gorm:"type:uuid;primaryKey"`
-	AppID        uuid.UUID `gorm:"type:uuid;not null"` // Dueño del archivo
-	BucketID     uuid.UUID `gorm:"type:uuid;not null"` // Dónde se guardó
-	OriginalName string    `gorm:"not null"`
-	PhysicalPath string    `gorm:"not null"` // Ruta en disco o Key en S3
-	FileSize     int64
-	ContentType  string
-	CreatedAt    time.Time
+	ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	AppID        uuid.UUID `gorm:"type:uuid;not null" json:"appId"`    // Dueño del archivo
+	BucketID     uuid.UUID `gorm:"type:uuid;not null" json:"bucketId"` // Dónde se guardó
+	OriginalName string    `gorm:"not null" json:"originalName"`
+	PhysicalPath string    `gorm:"not null" json:"physicalPath"` // Ruta en disco o Key en S3
+	FileSize     int64     `json:"fileSize"`
+	ContentType  string    `json:"contentType"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
