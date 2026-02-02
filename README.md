@@ -44,3 +44,7 @@ DB_PASSWORD=your_password
 DB_NAME=storage_db
 DB_PORT=5432
 DB_SSLMODE=disable
+
+
+```bash
+docker run -d  --name healthconnect-storage-service -p 8082:8082 --network healthconnect-net --env-file .env healthconnect-strorage-service:1.0.0

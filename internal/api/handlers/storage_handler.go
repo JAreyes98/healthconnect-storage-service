@@ -10,6 +10,7 @@ import (
 
 	"github.com/JAreyes98/healthconnect-storage-service/internal/crypto"
 	"github.com/JAreyes98/healthconnect-storage-service/internal/model"
+	"github.com/JAreyes98/healthconnect-storage-service/internal/service"
 	"github.com/JAreyes98/healthconnect-storage-service/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -17,11 +18,15 @@ import (
 )
 
 type StorageHandler struct {
-	DB *gorm.DB
+	DB    *gorm.DB
+	Audit *service.AuditService
 }
 
-func NewStorageHandler(db *gorm.DB) *StorageHandler {
-	return &StorageHandler{DB: db}
+func NewStorageHandler(db *gorm.DB, audit *service.AuditService) *StorageHandler {
+	return &StorageHandler{
+		DB:    db,
+		Audit: audit,
+	}
 }
 func (h *StorageHandler) UploadFile(c *fiber.Ctx) error {
 	appID := c.Locals("app_id").(uuid.UUID)
@@ -67,6 +72,7 @@ func (h *StorageHandler) UploadFile(c *fiber.Ctx) error {
 	}
 
 	h.DB.Create(&fileMeta)
+	h.Audit.LogEvent("FILE_UPLOAD", fmt.Sprintf("File %s stored with ID %s", originalName, fileID), "INFO")
 	return c.Status(201).JSON(fileMeta)
 }
 
@@ -85,6 +91,8 @@ func (h *StorageHandler) GetMetadata(c *fiber.Ctx) error {
 func (h *StorageHandler) DownloadFile(c *fiber.Ctx) error {
 	fileID := c.Params("id")
 	appID := c.Locals("app_id").(uuid.UUID)
+
+	h.Audit.LogEvent("FILE_DOWNLOAD", fmt.Sprintf("Downloading file ID: %s", fileID), "INFO")
 
 	// 1. Buscar metadata y validar que pertenece a la App
 	var meta model.FileMetadata
@@ -106,6 +114,7 @@ func (h *StorageHandler) DownloadFile(c *fiber.Ctx) error {
 		// Leer el archivo cifrado desde el disco
 		encryptedData, err := os.ReadFile(meta.PhysicalPath)
 		if err != nil {
+			h.Audit.LogEvent("READ_FILE_FAILED", fmt.Sprintf("Critical: Failed to read file %s", fileID), "ERROR")
 			return c.Status(500).JSON(fiber.Map{"error": "Could not read file from storage"})
 		}
 
@@ -113,6 +122,7 @@ func (h *StorageHandler) DownloadFile(c *fiber.Ctx) error {
 		decryptedData, err := crypto.Decrypt(encryptedData)
 		if err != nil {
 			log.Printf("DECRYPTION ERROR: %v", err)
+			h.Audit.LogEvent("DECRYPTION_FAILED", fmt.Sprintf("Critical: Failed to decrypt file %s", fileID), "ERROR")
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to decrypt file"})
 		}
 

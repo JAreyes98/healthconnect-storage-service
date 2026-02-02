@@ -4,10 +4,10 @@ package model
 import "github.com/google/uuid"
 
 type App struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
-	AppName   string    `gorm:"unique;not null"` // 'patient-service', 'billing-service'
-	ApiKey    string    `gorm:"unique;not null"`
-	ApiSecret string    `gorm:"not null"` // Almacenado de forma segura
-	IsActive  bool      `gorm:"default:true"`
-	Buckets   []Bucket  `gorm:"foreignKey:AppID"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	AppName   string    `gorm:"unique;not null" json:"app_name"`
+	ApiKey    string    `gorm:"unique;not null" json:"api_key"`
+	ApiSecret string    `gorm:"not null" json:"api_secret"`
+	IsActive  bool      `gorm:"default:true" json:"is_active"`
+	Buckets   []Bucket  `gorm:"foreignKey:AppID" json:"buckets"`
 }

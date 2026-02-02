@@ -3,17 +3,18 @@ package routes
 import (
 	"github.com/JAreyes98/healthconnect-storage-service/internal/api/handlers"
 	"github.com/JAreyes98/healthconnect-storage-service/internal/api/middleware"
+	"github.com/JAreyes98/healthconnect-storage-service/internal/service"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
 
-func SetupRoutes(app *fiber.App, db *gorm.DB) {
-	admin := handlers.NewAdminHandler(db)
+func SetupRoutes(app *fiber.App, db *gorm.DB, auditSvc *service.AuditService) {
+	admin := handlers.NewAdminHandler(db, auditSvc)
 	replicate := handlers.NewReplicationHandler(db)
-	storageHandler := handlers.NewStorageHandler(db)
+	storageHandler := handlers.NewStorageHandler(db, auditSvc)
 
 	// 1. Definimos el grupo base VERSIONADO
-	v1 := app.Group("/api/v1")
+	v1 := app.Group("/api/v1/storage")
 
 	// 2. Definimos el grupo ADMIN (hijo de v1) -> /api/v1/admin
 	adminGroup := v1.Group("/admin")
@@ -25,6 +26,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	adminGroup.Delete("/apps/:id", admin.DeleteApp)
 
 	// Buckets
+	adminGroup.Get("/buckets", admin.GetAllBuckets)
 	adminGroup.Post("/buckets", admin.RegisterBucket)
 	adminGroup.Get("/buckets/app/:appId", admin.GetBucketsByApp)
 
