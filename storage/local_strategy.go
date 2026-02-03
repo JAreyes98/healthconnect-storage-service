@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -14,41 +13,40 @@ import (
 type LocalStrategy struct{}
 
 type LocalConfig struct {
-	BasePath string `json:"basePath"`
+	BasePath string `json:"path"`
 }
 
 func (s *LocalStrategy) Upload(src io.Reader, filename string, configJSON string, shouldEncrypt bool) (string, error) {
 	var cfg LocalConfig
+
 	if err := json.Unmarshal([]byte(configJSON), &cfg); err != nil {
-		return "", fmt.Errorf("error al leer config: %v", err)
+		return "", fmt.Errorf("config error: %v", err)
+	}
+
+	if cfg.BasePath == "" {
+		return "", fmt.Errorf("basePath is empty. Check if JSON key is 'path'. Raw config: %s", configJSON)
 	}
 
 	if err := os.MkdirAll(cfg.BasePath, 0755); err != nil {
-		return "", err
+		return "", fmt.Errorf("mkdir failed for path [%s]: %v", cfg.BasePath, err)
 	}
 
 	fullPath := filepath.Join(cfg.BasePath, filename)
 
-	// 1. LEER TODO EL CONTENIDO PRIMERO
 	data, err := io.ReadAll(src)
 	if err != nil {
-		return "", fmt.Errorf("error leyendo stream: %v", err)
+		return "", fmt.Errorf("read stream error: %v", err)
 	}
 
-	// 2. CIFRAR SI ES NECESARIO
 	if shouldEncrypt {
-		// Asumiendo que creaste el paquete internal/crypto
 		data, err = crypto.Encrypt(data)
 		if err != nil {
-			return "", fmt.Errorf("error cifrando: %v", err)
+			return "", fmt.Errorf("encryption error: %v", err)
 		}
-		log.Println("🔐 Archivo cifrado exitosamente")
 	}
 
-	// 3. ESCRIBIR EL RESULTADO FINAL AL DISCO
-	// os.WriteFile crea el archivo y escribe los bytes de un solo golpe
 	if err := os.WriteFile(fullPath, data, 0644); err != nil {
-		return "", fmt.Errorf("error guardando archivo: %v", err)
+		return "", fmt.Errorf("disk write error: %v", err)
 	}
 
 	return fullPath, nil

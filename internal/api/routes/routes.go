@@ -29,6 +29,8 @@ func SetupRoutes(app *fiber.App, db *gorm.DB, auditSvc *service.AuditService) {
 	adminGroup.Get("/buckets", admin.GetAllBuckets)
 	adminGroup.Post("/buckets", admin.RegisterBucket)
 	adminGroup.Get("/buckets/app/:appId", admin.GetBucketsByApp)
+	adminGroup.Get("/buckets/:id", admin.GetBucketById)
+	adminGroup.Get("/buckets/:id/files", admin.GetBucketFiles)
 
 	// Replication
 	adminGroup.Post("/replication", replicate.CreateRule)
@@ -37,7 +39,8 @@ func SetupRoutes(app *fiber.App, db *gorm.DB, auditSvc *service.AuditService) {
 
 	// 3. Definimos el grupo STORAGE (hijo de v1) -> /api/v1/storage
 	// NOTA: Aquí usamos 'v1.Group', NO 'adminGroup.Group'
-	storageGroup := v1.Group("/storage", middleware.StorageAuth(db))
+	storageGroup := v1.Group("/files", middleware.StorageAuth(db))
+	storageGroup.Get("/view/:id", storageHandler.ViewFile)
 	storageGroup.Post("/upload", storageHandler.UploadFile)
 	storageGroup.Get("/download/:id", storageHandler.DownloadFile)
 }

@@ -28,6 +28,7 @@ func NewStorageHandler(db *gorm.DB, audit *service.AuditService) *StorageHandler
 		Audit: audit,
 	}
 }
+
 func (h *StorageHandler) UploadFile(c *fiber.Ctx) error {
 	appID := c.Locals("app_id").(uuid.UUID)
 	bucketName := c.Get("X-Bucket-Name")
@@ -74,6 +75,15 @@ func (h *StorageHandler) UploadFile(c *fiber.Ctx) error {
 	h.DB.Create(&fileMeta)
 	h.Audit.LogEvent("FILE_UPLOAD", fmt.Sprintf("File %s stored with ID %s", originalName, fileID), "INFO")
 	return c.Status(201).JSON(fileMeta)
+}
+
+func (h *StorageHandler) ViewFile(c *fiber.Ctx) error {
+	fileID := c.Params("id")
+	var file model.FileMetadata
+	h.DB.First(&file, "id = ?", fileID)
+
+	c.Set("Content-Disposition", "inline; filename=\""+file.OriginalName+"\"")
+	return c.SendFile(file.PhysicalPath)
 }
 
 func (h *StorageHandler) GetMetadata(c *fiber.Ctx) error {
@@ -132,4 +142,30 @@ func (h *StorageHandler) DownloadFile(c *fiber.Ctx) error {
 
 	// Si no está cifrado, usar SendFile (más eficiente para archivos planos)
 	return c.SendFile(meta.PhysicalPath)
+}
+
+func (h *AdminHandler) GetBucketFiles(c *fiber.Ctx) error {
+	bucketID := c.Params("id")
+	var files []model.FileMetadata
+	var bucket model.Bucket
+
+	if err := h.DB.Where("bucket_id = ?", bucketID).Find(&files).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Could not fetch files"})
+	}
+
+	if err := h.DB.Where("id = ?", bucketID).Find(&bucket).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Could not find bucket"})
+	}
+
+	for i := range files {
+		var total int64
+		h.DB.Model(&model.FileMetadata{}).
+			Where("bucket_id = ?", files[i].ID).
+			Select("COALESCE(SUM(file_size), 0)").
+			Scan(&total)
+
+		files[i].IsCiphered = bucket.Cipher
+	}
+
+	return c.JSON(files)
 }

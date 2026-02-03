@@ -29,7 +29,10 @@ func NewAdminHandler(db *gorm.DB, audit *service.AuditService) *AdminHandler {
 func (h *AdminHandler) CreateApp(c *fiber.Ctx) error {
 	var app model.App
 	if err := c.BodyParser(&app); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "Cuerpo inválido"})
+		return c.Status(400).JSON(fiber.Map{
+			"error":     "Error de parseo: " + err.Error(),
+			"sent_data": string(c.Body()),
+		})
 	}
 	app.ID = uuid.New()
 	app.ApiKey = generateToken(16)
@@ -42,10 +45,25 @@ func (h *AdminHandler) CreateApp(c *fiber.Ctx) error {
 
 func (h *AdminHandler) GetAllApps(c *fiber.Ctx) error {
 	var apps []model.App
-	h.DB.Preload("Buckets").Find(&apps)
 
-	h.Audit.LogEvent("ADMIN_APP_ALL", "Getting all apps secrets", "INFO")
+	if err := h.DB.Preload("Buckets").Find(&apps).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Could not fetch apps"})
+	}
 
+	for i := range apps {
+		for j := range apps[i].Buckets {
+			var total int64
+
+			h.DB.Model(&model.FileMetadata{}).
+				Where("bucket_id = ?", apps[i].Buckets[j].ID).
+				Select("COALESCE(SUM(file_size), 0)").
+				Scan(&total)
+
+			apps[i].Buckets[j].TotalSize = total
+		}
+	}
+
+	h.Audit.LogEvent("ADMIN_APP_ALL", "Fetched all apps with storage metrics", "INFO")
 	return c.JSON(apps)
 }
 
@@ -93,14 +111,33 @@ func (h *AdminHandler) RegisterBucket(c *fiber.Ctx) error {
 // GetBucketsByApp (GET /api/v1/admin/buckets/app/:appId)
 func (h *AdminHandler) GetAllBuckets(c *fiber.Ctx) error {
 	var buckets []model.Bucket
+	h.DB.Find(&buckets)
 
-	if err := h.DB.Find(&buckets).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Could not fetch buckets from database",
-		})
+	h.DB.Preload("App").Find(&buckets)
+	for i := range buckets {
+		var total int64
+		h.DB.Model(&model.FileMetadata{}).
+			Where("bucket_id = ?", buckets[i].ID).
+			Select("COALESCE(SUM(file_size), 0)").
+			Scan(&total)
+
+		buckets[i].TotalSize = total
 	}
 
 	return c.JSON(buckets)
+}
+
+func (h *AdminHandler) GetBucketById(c *fiber.Ctx) error {
+	bucketId := c.Params("id")
+	var bucket model.Bucket
+	var queryErr error
+	queryErr = h.DB.Where("id = ?", bucketId).Preload("App").Find(&bucket).Error
+
+	if queryErr != nil {
+		return c.Status(500).JSON(fiber.Map{"error": queryErr.Error()})
+	}
+
+	return c.JSON(bucket)
 }
 
 func (h *AdminHandler) GetBucketsByApp(c *fiber.Ctx) error {

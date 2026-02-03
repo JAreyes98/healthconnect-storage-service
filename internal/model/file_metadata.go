@@ -15,4 +15,5 @@ type FileMetadata struct {
 	FileSize     int64     `json:"fileSize"`
 	ContentType  string    `json:"contentType"`
 	CreatedAt    time.Time `json:"createdAt"`
+	IsCiphered   bool      `gorm:"-" json:"is_ciphered"`
 }
