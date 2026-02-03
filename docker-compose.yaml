@@ -1,0 +1,17 @@
+services:
+  storage-service:
+    image: healthconnect-strorage-service:1.0.0
+    container_name: healthconnect-storage-service
+    ports:
+      - "8082:8082"
+    networks:
+      - healthconnect-net
+    env_file:
+      - .env
+    volumes:
+      - C:\data\storage:/data/storage
+    restart: unless-stopped
+
+networks:
+  healthconnect-net:
+    external: true
