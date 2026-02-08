@@ -27,7 +27,6 @@ mediadata/
 
 # --- Go Dependencies and Cache ---
 vendor/
-go.sum
 # (Opcional: algunos prefieren subir go.sum, pero go.mod es el obligatorio)
 
 # --- IDE and Editor private files ---
