@@ -33,7 +33,7 @@ func InitDB() *gorm.DB {
 	log.Printf("Connecting to  Postgres: %s:%s -> DB:%s", host, port, dbname)
 
 	// 4. Conectar
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{PrepareStmt: false})
 	if err != nil {
 		log.Fatalf("Error crítico: No se pudo conectar a Postgres. DSN usado: %s. Error: %v", dsn, err)
 	}
