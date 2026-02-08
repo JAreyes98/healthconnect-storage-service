@@ -13,6 +13,13 @@ func SetupRoutes(app *fiber.App, db *gorm.DB, auditSvc *service.AuditService) {
 	replicate := handlers.NewReplicationHandler(db)
 	storageHandler := handlers.NewStorageHandler(db, auditSvc)
 
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"status":  "up",
+			"service": "storage-service",
+		})
+	})
+
 	// 1. Definimos el grupo base VERSIONADO
 	v1 := app.Group("/api/v1/storage")
 
