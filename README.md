@@ -44,6 +44,7 @@ DB_PASSWORD=your_password
 DB_NAME=storage_db
 DB_PORT=5432
 DB_SSLMODE=disable
+FRONTEND_ORIGINS=http://localhost:5174
 
 
 ```bash
