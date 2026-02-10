@@ -41,8 +41,10 @@ func SetupRoutes(app *fiber.App, db *gorm.DB, auditSvc *service.AuditService) {
 
 	// Replication
 	adminGroup.Post("/replication", replicate.CreateRule)
+	adminGroup.Get("/replication", replicate.GetRules)
 	adminGroup.Get("/replication/app/:appId", replicate.GetRulesByApp)
 	adminGroup.Delete("/replication/:id", replicate.DeleteRule)
+	adminGroup.Patch("/replication/:id/toggle", replicate.ToggleRule)
 
 	// 3. Definimos el grupo STORAGE (hijo de v1) -> /api/v1/storage
 	// NOTA: Aquí usamos 'v1.Group', NO 'adminGroup.Group'

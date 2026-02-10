@@ -8,13 +8,15 @@ type StorageStrategy interface {
 }
 
 // Factory para obtener la estrategia según el tipo
-func GetStrategy(pType string) StorageStrategy {
+func GetStrategy(pType string) (StorageStrategy, bool) {
 	switch pType {
 	case "LOCAL":
-		return &LocalStrategy{}
+		return &LocalStrategy{}, true
 	case "S3":
-		return &S3Strategy{}
+		return &S3Strategy{}, true
+	case "DROPBOX":
+		return &DropboxStrategy{}, true
 	default:
-		return &LocalStrategy{}
+		return nil, false
 	}
 }
