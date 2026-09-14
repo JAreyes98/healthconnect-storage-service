@@ -20,9 +20,10 @@ func main() {
 
 	auditSvc, err := service.NewAuditService(rabbitURL)
 	if err != nil {
-		log.Fatalf("Critical: Could not connect to RabbitMQ: %v", err)
+		log.Printf("[WARN] No se pudo conectar a RabbitMQ: %v. Continuando sin servicio de auditoría.", err)
+		auditSvc = &service.AuditService{}
 	}
-	defer auditSvc.Close() // Ahora sí existe
+	defer auditSvc.Close()
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
@@ -33,5 +34,5 @@ func main() {
 	// Configurar rutas, etc.
 	routes.SetupRoutes(app, db, auditSvc)
 
-	log.Fatal(app.Listen(":8082"))
+	log.Fatal(app.Listen(":" + os.Getenv("PORT")))
 }
