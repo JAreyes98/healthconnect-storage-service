@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/streadway/amqp"
@@ -21,6 +22,11 @@ type AuditService struct {
 }
 
 func NewAuditService(url string) (*AuditService, error) {
+	if url == "" {
+		log.Println("[WARN] RABBITMQ_URL no configurada. Servicio de auditoría deshabilitado.")
+		return &AuditService{}, nil
+	}
+
 	conn, err := amqp.Dial(url)
 	if err != nil {
 		return nil, err
@@ -28,10 +34,10 @@ func NewAuditService(url string) (*AuditService, error) {
 
 	ch, err := conn.Channel()
 	if err != nil {
+		conn.Close()
 		return nil, err
 	}
 
-	// Importante: En Go también declaramos el exchange por si no existe
 	err = ch.ExchangeDeclare(
 		"audit_exchange", // name
 		"topic",          // type
@@ -41,11 +47,20 @@ func NewAuditService(url string) (*AuditService, error) {
 		false,            // no-wait
 		nil,              // arguments
 	)
+	if err != nil {
+		ch.Close()
+		conn.Close()
+		return nil, err
+	}
 
-	return &AuditService{conn: conn, channel: ch}, err
+	return &AuditService{conn: conn, channel: ch}, nil
 }
 
 func (s *AuditService) LogEvent(action, details, severity string) {
+	if s == nil || s.channel == nil {
+		return
+	}
+
 	msg := AuditMessage{
 		Timestamp: time.Now().Format(time.RFC3339),
 		Service:   "StorageService-Go",
@@ -56,7 +71,7 @@ func (s *AuditService) LogEvent(action, details, severity string) {
 
 	body, _ := json.Marshal(msg)
 
-	s.channel.Publish(
+	_ = s.channel.Publish(
 		"audit_exchange",    // exchange
 		"audit.routing.key", // routing key
 		false,
@@ -68,9 +83,10 @@ func (s *AuditService) LogEvent(action, details, severity string) {
 	)
 }
 
-// internal/service/audit_service.go
-
 func (s *AuditService) Close() {
+	if s == nil {
+		return
+	}
 	if s.channel != nil {
 		s.channel.Close()
 	}
