@@ -207,7 +207,7 @@ func (h *StorageHandler) DownloadFile(c *fiber.Ctx) error {
 		return c.Send(decryptedData)
 	}
 
-	return c.SendStream(reader)
+	return c.SendFile(meta.PhysicalPath)
 }
 
 func (h *AdminHandler) GetBucketFiles(c *fiber.Ctx) error {
